@@ -1,0 +1,17 @@
+name: ChristmasPresents
+version: ${version}
+main: com.example.christmaspresents.ChristmasPresents
+api-version: '1.20'
+description: A fun Christmas presents plugin for your server!
+author: benkbb
+softdepend: [WorldGuard]
+commands:
+  presents:
+    description: Main command for ChristmasPresents
+    usage: /<command> [additem|addall|give|droprates|spawn <start|stop>|clear [amount]|resetdrops]
+    permission: presents.admin
+    permission-message: You don't have permission to use this command!
+permissions:
+  presents.admin:
+    description: Allows access to ChristmasPresents admin commands
+    default: op

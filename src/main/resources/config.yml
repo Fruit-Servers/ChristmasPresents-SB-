@@ -1,0 +1,21 @@
+present_names:
+  common: '&#1D8C11&l&oF&#1D8C11&l&or&#3A9734&l&ou&#57A257&l&oi&#74AE7A&l&ot&#90B99C&l&om&#ADC4BF&l&oa&#CACFE2&l&os &#D994AD&l&oP&#E17693&l&or&#E85978&l&oe&#F03B5E&l&os&#F71E43&l&oe&#FF0029&l&on&#FF0029&l&ot'
+  special: '&#8C1188&l&oS&#8C1188&l&op&#8C1188&l&oe&#942993&l&oc&#9C419F&l&oi&#A358AA&l&oa&#AB70B5&l&ol &#BBA0CC&l&oF&#C2B7D7&l&or&#CACFE2&l&ou&#D0B8CD&l&oi&#D6A1B9&l&ot&#DC8AA4&l&om&#E27390&l&oa&#E75C7B&l&os &#F32E52&l&oP&#F9173E&l&or&#FF0029&l&oe&#FF0029&l&os&#FF0029&l&oe&#FF0029&l&on&#FF0029&l&ot'
+
+spawn_settings:
+  active-worlds:
+    - world
+  spawn-interval-min: 30
+  spawn-interval-max: 90
+  spawn-count: 5
+  spawn-message:
+    enabled: true
+    text: '&c&lSanta has delivered some presents!'
+
+money_rewards:
+  common:
+    min: 50
+    max: 200
+  special:
+    min: 500
+    max: 2000
