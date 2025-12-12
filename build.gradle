@@ -33,6 +33,6 @@ processResources {
 }
 
 jar {
-    archiveBaseName.set('ChristmasPresents')
+    archiveBaseName.set('[PM]ChristmasPresents')
     archiveVersion.set('1.0.7')
 }

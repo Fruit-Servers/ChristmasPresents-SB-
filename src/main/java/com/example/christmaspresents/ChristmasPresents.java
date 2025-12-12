@@ -955,7 +955,7 @@ public class ChristmasPresents extends JavaPlugin implements Listener, TabComple
                     if (feedback != null) feedback.sendMessage("§eSpawned " + spawned[0] + "/" + count + " presents (attempts: " + attempts[0] + ")");
                 }
             }
-        }.runTaskTimer(this, 0L, 1L);
+        }.runTaskTimer(ChristmasPresents.this, 0L, 1L);
     }
 
     private boolean isAllowedSurface(org.bukkit.Material mat) {
