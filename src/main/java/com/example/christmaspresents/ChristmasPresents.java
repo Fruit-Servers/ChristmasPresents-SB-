@@ -20,17 +20,7 @@ import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.PluginManager;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
-import net.kyori.adventure.text.format.TextColor;
-import net.kyori.adventure.text.format.TextDecoration;
-import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
-import com.sk89q.worldedit.bukkit.BukkitAdapter;
-import com.sk89q.worldguard.WorldGuard;
-import com.sk89q.worldguard.bukkit.WorldGuardPlugin;
-import com.sk89q.worldguard.protection.flags.Flags;
-import com.sk89q.worldguard.protection.regions.RegionContainer;
-import com.sk89q.worldguard.protection.regions.RegionQuery;
+import org.bukkit.ChatColor;
 
 import java.io.File;
 import java.io.IOException;
@@ -44,7 +34,6 @@ public class ChristmasPresents extends JavaPlugin implements Listener, TabComple
     private final NamespacedKey harmlessKey = new NamespacedKey(this, "harmless_fx");
     private final NamespacedKey presentTitleKey = new NamespacedKey(this, "present_title");
     private final NamespacedKey presentTitleCreatedKey = new NamespacedKey(this, "present_title_created");
-    private final LegacyComponentSerializer legacy = LegacyComponentSerializer.builder().character('&').hexColors().build();
     private final Random random = new Random();
     private final Map<String, Long> specialCooldowns = new HashMap<>();
     private final Map<String, List<PresentEntry>> drops = new HashMap<>();
@@ -53,10 +42,10 @@ public class ChristmasPresents extends JavaPlugin implements Listener, TabComple
     private FileConfiguration messagesConfig;
     private File titlesFile;
     private FileConfiguration titlesConfig;
-    private Component displayNameCommon;
-    private Component displayNameSpecial;
-    private java.util.List<Component> loreCommon;
-    private java.util.List<Component> loreSpecial;
+    private String displayNameCommon;
+    private String displayNameSpecial;
+    private java.util.List<String> loreCommon;
+    private java.util.List<String> loreSpecial;
     private final java.util.List<DeadZone> deadZones = new java.util.ArrayList<>();
     private final Set<org.bukkit.Location> presentLocations = new HashSet<>();
     private final Map<org.bukkit.Location, java.util.UUID> presentNameEntities = new HashMap<>();
@@ -364,27 +353,17 @@ public class ChristmasPresents extends JavaPlugin implements Listener, TabComple
         org.bukkit.block.TileState state = (org.bukkit.block.TileState) block.getState();
         if (!state.getPersistentDataContainer().has(presentTypeKey, PersistentDataType.STRING)) return;
         event.setCancelled(true);
-        Player player = event.getPlayer();
-        org.bukkit.Location loc = block.getLocation();
-        
-        if (getServer().getPluginManager().getPlugin("WorldGuard") != null) {
-            try {
-                RegionContainer container = WorldGuard.getInstance().getPlatform().getRegionContainer();
-                RegionQuery query = container.createQuery();
-                com.sk89q.worldedit.util.Location wgLoc = BukkitAdapter.adapt(loc);
-                if (!query.testState(wgLoc, WorldGuardPlugin.inst().wrapPlayer(player), Flags.BLOCK_BREAK)) {
-                    player.sendMessage("§cYou cannot open this here");
-                    return;
-                }
-            } catch (Exception ignored) {}
-        }
-        
         String presentType = state.getPersistentDataContainer().get(presentTypeKey, PersistentDataType.STRING);
+        org.bukkit.Location loc = block.getLocation();
         block.setType(org.bukkit.Material.AIR);
         cleanupTitlesAt(loc);
         presentLocations.remove(loc);
         savePresentLocations();
-        openPresent(player, presentType, loc);
+        openPresent(event.getPlayer(), presentType, loc);
+    }
+
+    private void openPresent(Player player, String presentType) {
+        openPresent(player, presentType, player.getLocation());
     }
 
     private void openPresent(Player player, String presentType, org.bukkit.Location chestLoc) {
@@ -412,8 +391,8 @@ public class ChristmasPresents extends JavaPlugin implements Listener, TabComple
         if (chosen.kind == EntryKind.ITEM) {
             ItemStack reward = chosen.item.clone();
             playOpenAnimation(chestLoc, true, reward, player);
-            String name = reward.hasItemMeta() && reward.getItemMeta().hasDisplayName() ? net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer.plainText().serialize(reward.getItemMeta().displayName()) : reward.getType().name();
-            player.sendMessage(Component.text("You received: ").color(NamedTextColor.GREEN).append(Component.text(name).color(NamedTextColor.GOLD).decorate(TextDecoration.BOLD)));
+            String name = reward.hasItemMeta() && reward.getItemMeta().hasDisplayName() ? reward.getItemMeta().getDisplayName() : reward.getType().name();
+            player.sendMessage(ChatColor.GREEN + "You received: " + ChatColor.GOLD + ChatColor.BOLD + name);
         } else if (chosen.kind == EntryKind.EFFECT) {
             playOpenAnimation(chestLoc, false, null, player);
             executeEffect(player, chosen.effectKey, presentType);
@@ -423,7 +402,7 @@ public class ChristmasPresents extends JavaPlugin implements Listener, TabComple
     public ItemStack createPresent(boolean isSpecial) {
         ItemStack present = new ItemStack(Material.CHEST);
         ItemMeta meta = present.getItemMeta();
-        meta.displayName(isSpecial ? displayNameSpecial : displayNameCommon);
+        meta.setDisplayName(isSpecial ? displayNameSpecial : displayNameCommon);
         meta.getPersistentDataContainer().set(presentTypeKey, PersistentDataType.STRING, isSpecial ? "special" : "common");
         present.setItemMeta(meta);
         return present;
@@ -432,10 +411,22 @@ public class ChristmasPresents extends JavaPlugin implements Listener, TabComple
     private void loadDisplayFromConfig() {
         String nameCommon = getConfig().getString("present_names.common", "&aFruitmas Present");
         String nameSpecial = getConfig().getString("present_names.special", "&6Special Fruitmas Present");
-        displayNameCommon = legacy.deserialize(nameCommon);
-        displayNameSpecial = legacy.deserialize(nameSpecial);
+        displayNameCommon = translateHexColorCodes(nameCommon);
+        displayNameSpecial = translateHexColorCodes(nameSpecial);
         loreCommon = new java.util.ArrayList<>();
         loreSpecial = new java.util.ArrayList<>();
+    }
+    
+    private String translateHexColorCodes(String message) {
+        java.util.regex.Pattern hexPattern = java.util.regex.Pattern.compile("&#([A-Fa-f0-9]{6})");
+        java.util.regex.Matcher matcher = hexPattern.matcher(message);
+        StringBuffer buffer = new StringBuffer(message.length() + 4 * 8);
+        while (matcher.find()) {
+            String group = matcher.group(1);
+            matcher.appendReplacement(buffer, net.md_5.bungee.api.ChatColor.of("#" + group).toString());
+        }
+        matcher.appendTail(buffer);
+        return ChatColor.translateAlternateColorCodes('&', buffer.toString());
     }
 
     private void loadCustomConfig() {
@@ -655,7 +646,7 @@ public class ChristmasPresents extends JavaPlugin implements Listener, TabComple
             List<String> msgs = messagesConfig.getStringList("messages");
             if (msgs == null || msgs.isEmpty()) return;
             String m = msgs.get(random.nextInt(msgs.size()));
-            player.sendMessage(Component.text(m).color(NamedTextColor.AQUA));
+            player.sendMessage(ChatColor.AQUA + m);
             return;
         }
         if ("money_reward".equalsIgnoreCase(key)) {
@@ -667,11 +658,11 @@ public class ChristmasPresents extends JavaPlugin implements Listener, TabComple
                 if (rsp != null) {
                     net.milkbowl.vault.economy.Economy econ = rsp.getProvider();
                     econ.depositPlayer(player, amount);
-                    player.sendMessage(Component.text("You received $" + amount + "!").color(NamedTextColor.GOLD).decorate(TextDecoration.BOLD));
+                    player.sendMessage(ChatColor.GOLD + "" + ChatColor.BOLD + "You received $" + amount + "!");
                     return;
                 }
             }
-            player.sendMessage(Component.text("Money reward failed - Vault not found").color(NamedTextColor.RED));
+            player.sendMessage(ChatColor.RED + "Money reward failed - Vault not found");
         }
     }
 
@@ -723,7 +714,7 @@ public class ChristmasPresents extends JavaPlugin implements Listener, TabComple
         org.bukkit.World world = loc.getWorld();
         if (world == null) return;
         org.bukkit.entity.TextDisplay td = (org.bukkit.entity.TextDisplay) world.spawnEntity(loc.clone().add(0.5, 1.3, 0.5), org.bukkit.entity.EntityType.TEXT_DISPLAY);
-        td.text("special".equalsIgnoreCase(presentType) ? displayNameSpecial : displayNameCommon);
+        td.setText("special".equalsIgnoreCase(presentType) ? displayNameSpecial : displayNameCommon);
         td.setBillboard(org.bukkit.entity.Display.Billboard.CENTER);
         td.setShadowed(false);
         try { td.setBackgroundColor(org.bukkit.Color.fromARGB(0, 0, 0, 0)); } catch (Throwable ignored) {}
@@ -749,8 +740,8 @@ public class ChristmasPresents extends JavaPlugin implements Listener, TabComple
             if (!ours) {
                 org.bukkit.entity.Display.Billboard bb = td.getBillboard();
                 if (bb == org.bukkit.entity.Display.Billboard.CENTER) {
-                    Component expected = "special".equalsIgnoreCase(presentType) ? displayNameSpecial : displayNameCommon;
-                    if (expected != null && expected.equals(td.text())) ours = true;
+                    String expected = "special".equalsIgnoreCase(presentType) ? displayNameSpecial : displayNameCommon;
+                    if (expected != null && expected.equals(td.getText())) ours = true;
                 }
             }
             if (ours) { found = td; break; }
@@ -831,7 +822,7 @@ public class ChristmasPresents extends JavaPlugin implements Listener, TabComple
             spawnRandomPresents(count, null);
             if (getConfig().getBoolean("spawn_settings.spawn-message.enabled", true)) {
                 String msg = getConfig().getString("spawn_settings.spawn-message.text", "&c&lSanta has delivered some presents!");
-                getServer().broadcast(legacy.deserialize(msg));
+                getServer().broadcastMessage(translateHexColorCodes(msg));
             }
             scheduleNextSpawn();
         }, delayTicks).getTaskId();
@@ -862,36 +853,27 @@ public class ChristmasPresents extends JavaPlugin implements Listener, TabComple
                     Player basePlayer = players.get(random.nextInt(players.size()));
                     if (!basePlayer.isOnline()) continue;
                     org.bukkit.World w = basePlayer.getWorld();
-                    org.bukkit.Location playerLoc = basePlayer.getLocation();
-                    int playerY = playerLoc.getBlockY();
-                    int bx = playerLoc.getBlockX();
-                    int bz = playerLoc.getBlockZ();
-                    int radius = 3 + random.nextInt(13);
-                    double angle = random.nextDouble() * Math.PI * 2;
-                    int offsetX = (int)(Math.cos(angle) * radius);
-                    int offsetZ = (int)(Math.sin(angle) * radius);
-                    int rx = bx + offsetX;
-                    int rz = bz + offsetZ;
-                    
-                    org.bukkit.block.Block ground = null;
-                    for (int dy = -3; dy <= 3; dy++) {
-                        int checkY = playerY + dy;
-                        if (checkY < w.getMinHeight() || checkY > w.getMaxHeight() - 1) continue;
-                        org.bukkit.block.Block check = w.getBlockAt(rx, checkY, rz);
-                        if (isValidGroundBlock(check.getType())) {
-                            org.bukkit.block.Block above = check.getRelative(0, 1, 0);
-                            if (above.getType() == org.bukkit.Material.AIR) {
-                                ground = check;
-                                break;
-                            }
+                    int bx = basePlayer.getLocation().getBlockX();
+                    int bz = basePlayer.getLocation().getBlockZ();
+                    int rx = bx + random.nextInt(301) - 150;
+                    int rz = bz + random.nextInt(301) - 150;
+                    org.bukkit.block.Block top = w.getHighestBlockAt(rx, rz);
+                    org.bukkit.block.Block ground = top;
+                    for (int dy = 0; dy < 6 && ground.getY() > w.getMinHeight(); dy++) {
+                        org.bukkit.Material m = ground.getType();
+                        if (m == org.bukkit.Material.AIR || m == org.bukkit.Material.SNOW || m == org.bukkit.Material.SNOW_BLOCK || m == org.bukkit.Material.TALL_GRASS || m == org.bukkit.Material.SEAGRASS || m == org.bukkit.Material.KELP || m == org.bukkit.Material.WATER || m == org.bukkit.Material.LAVA || m == org.bukkit.Material.AZALEA_LEAVES || m == org.bukkit.Material.OAK_LEAVES || m == org.bukkit.Material.SPRUCE_LEAVES || m == org.bukkit.Material.BIRCH_LEAVES || m == org.bukkit.Material.JUNGLE_LEAVES || m == org.bukkit.Material.ACACIA_LEAVES || m == org.bukkit.Material.DARK_OAK_LEAVES || m == org.bukkit.Material.MANGROVE_LEAVES || m == org.bukkit.Material.CHERRY_LEAVES) {
+                            ground = ground.getRelative(0, -1, 0);
+                        } else {
+                            break;
                         }
                     }
-                    
-                    if (ground == null) continue;
                     org.bukkit.block.Block place = ground.getRelative(0, 1, 0);
+                    if (place.getType() != org.bukkit.Material.AIR) continue;
+                    if (!isAllowedSurface(ground.getType())) continue;
                     org.bukkit.Location base = place.getLocation();
                     if (isBlockedByDeadzone(base)) continue;
-                    if (!isFarFromPresents(base, 5.0)) continue;
+                    if (!isFarFromPlayers(base, 30.0)) continue;
+                    if (!isFarFromPresents(base, 30.0)) continue;
                     place.setType(org.bukkit.Material.CHEST, false);
                     if (place.getState() instanceof org.bukkit.block.TileState) {
                         org.bukkit.block.TileState st = (org.bukkit.block.TileState) place.getState();
@@ -916,29 +898,12 @@ public class ChristmasPresents extends JavaPlugin implements Listener, TabComple
                     if (feedback != null) feedback.sendMessage("§eSpawned " + spawned[0] + "/" + count + " presents (attempts: " + attempts[0] + ")");
                 }
             }
-        }.runTaskTimer(this, 0L, 1L);
+        }.runTaskTimer(ChristmasPresents.this, 0L, 1L);
     }
 
-    private boolean isValidGroundBlock(org.bukkit.Material mat) {
-        if (!mat.isSolid()) return false;
+    private boolean isAllowedSurface(org.bukkit.Material mat) {
         if (mat == org.bukkit.Material.WATER || mat == org.bukkit.Material.LAVA) return false;
-        String name = mat.name();
-        if (name.contains("LEAVES")) return false;
-        if (name.contains("SAPLING")) return false;
-        if (name.contains("GRASS") && !name.equals("GRASS_BLOCK")) return false;
-        if (name.contains("FLOWER")) return false;
-        if (name.contains("MUSHROOM") && !name.contains("BLOCK")) return false;
-        if (name.contains("FERN")) return false;
-        if (name.contains("SEAGRASS")) return false;
-        if (name.contains("KELP")) return false;
-        if (name.contains("CORAL") && !name.contains("BLOCK")) return false;
-        if (mat == org.bukkit.Material.SNOW) return false;
-        if (mat == org.bukkit.Material.SUGAR_CANE) return false;
-        if (mat == org.bukkit.Material.BAMBOO) return false;
-        if (mat == org.bukkit.Material.CACTUS) return false;
-        if (mat == org.bukkit.Material.VINE) return false;
-        if (mat == org.bukkit.Material.LILY_PAD) return false;
-        return true;
+        return mat.isSolid();
     }
 
     private boolean isBlockedByDeadzone(org.bukkit.Location loc) {
@@ -958,6 +923,15 @@ public class ChristmasPresents extends JavaPlugin implements Listener, TabComple
             }
         }
         return false;
+    }
+
+    private boolean isFarFromPlayers(org.bukkit.Location loc, double minDist) {
+        double minSq = minDist * minDist;
+        for (Player p : getServer().getOnlinePlayers()) {
+            if (p.getWorld() != loc.getWorld()) continue;
+            if (p.getLocation().distanceSquared(loc) < minSq) return false;
+        }
+        return true;
     }
 
     private boolean isFarFromPresents(org.bukkit.Location loc, double minDist) {

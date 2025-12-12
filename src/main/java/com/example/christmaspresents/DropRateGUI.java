@@ -14,19 +14,18 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
-import net.kyori.adventure.text.format.TextDecoration;
+import org.bukkit.ChatColor;
 
 public class DropRateGUI implements Listener {
     private final ChristmasPresents plugin;
-    private final Component MAIN_TITLE = Component.text("Present Drop Rates").color(NamedTextColor.GOLD).decorate(TextDecoration.BOLD);
+    private final String MAIN_TITLE = ChatColor.GOLD + "" + ChatColor.BOLD + "Present Drop Rates";
     private final NamespacedKey entryKey;
     private final Map<UUID, String> openType = new HashMap<>();
 
@@ -41,21 +40,21 @@ public class DropRateGUI implements Listener {
         
         ItemStack commonPresents = createMenuItem(
             Material.CHEST,
-            Component.text("Common Presents").color(NamedTextColor.GREEN).decorate(TextDecoration.BOLD),
-            Component.text("Click to configure drop rates").color(NamedTextColor.GRAY).decorate(TextDecoration.BOLD),
-            Component.text("for common presents.").color(NamedTextColor.GRAY)
+            ChatColor.GREEN + "" + ChatColor.BOLD + "Common Presents",
+            ChatColor.GRAY + "" + ChatColor.BOLD + "Click to configure drop rates",
+            ChatColor.GRAY + "for common presents."
         );
         
         ItemStack specialPresents = createMenuItem(
             Material.ENDER_CHEST,
-            Component.text("Special Presents").color(NamedTextColor.GOLD).decorate(TextDecoration.BOLD),
-            Component.text("Click to configure drop rates").color(NamedTextColor.GRAY).decorate(TextDecoration.BOLD),
-            Component.text("for special presents.").color(NamedTextColor.GRAY)
+            ChatColor.GOLD + "" + ChatColor.BOLD + "Special Presents",
+            ChatColor.GRAY + "" + ChatColor.BOLD + "Click to configure drop rates",
+            ChatColor.GRAY + "for special presents."
         );
             
         inv.setItem(3, commonPresents);
         inv.setItem(5, specialPresents);
-        ItemStack filler = createMenuItem(Material.GRAY_STAINED_GLASS_PANE, Component.text(" "));
+        ItemStack filler = createMenuItem(Material.GRAY_STAINED_GLASS_PANE, " ");
         for (int i = 0; i < inv.getSize(); i++) if (inv.getItem(i) == null) inv.setItem(i, filler);
         
         player.openInventory(inv);
@@ -69,7 +68,7 @@ public class DropRateGUI implements Listener {
         int size = (int) Math.ceil((itemEntries.size() + 8) / 9.0) * 9;
         size = Math.max(9, Math.min(54, size));
         
-        Inventory inv = Bukkit.createInventory(null, size, Component.text("Select Items: ").color(NamedTextColor.GOLD).decorate(TextDecoration.BOLD).append(Component.text(presentType).color(NamedTextColor.WHITE).decorate(TextDecoration.BOLD)));
+        Inventory inv = Bukkit.createInventory(null, size, ChatColor.GOLD + "" + ChatColor.BOLD + "Select Items: " + ChatColor.WHITE + ChatColor.BOLD + presentType);
         
         for (int i = 0; i < itemEntries.size(); i++) {
             ChristmasPresents.PresentEntry entry = itemEntries.get(i);
@@ -82,7 +81,7 @@ public class DropRateGUI implements Listener {
                 else if ("money_reward".equalsIgnoreCase(entry.effectKey)) { mat = Material.GOLD_INGOT; name = "Money Reward"; }
                 item = new ItemStack(mat);
                 ItemMeta m = item.getItemMeta();
-                m.displayName(Component.text(name).color(NamedTextColor.AQUA));
+                m.setDisplayName(ChatColor.AQUA + name);
                 item.setItemMeta(m);
             } else {
                 item = entry.item.clone();
@@ -90,28 +89,28 @@ public class DropRateGUI implements Listener {
             double chance = entry.chance;
             
             ItemMeta meta = item.getItemMeta();
-            java.util.List<Component> lore = meta.lore() != null ? meta.lore() : new java.util.ArrayList<>();
-            lore.add(Component.text(" "));
-            lore.add(Component.text("Current Drop Chance: ").color(NamedTextColor.GRAY).decorate(TextDecoration.BOLD).append(Component.text(String.format("%.1f%%", chance)).color(NamedTextColor.YELLOW).decorate(TextDecoration.BOLD)));
-            if (entry.kind == ChristmasPresents.EntryKind.EFFECT) lore.add(Component.text("Type: ").color(NamedTextColor.GRAY).append(Component.text(entry.effectKey).color(NamedTextColor.AQUA)));
-            lore.add(Component.text("Status: ").color(NamedTextColor.GRAY).decorate(TextDecoration.BOLD).append(Component.text(entry.enabled ? "Enabled" : "Disabled").color(entry.enabled ? NamedTextColor.GREEN : NamedTextColor.RED).decorate(TextDecoration.BOLD)));
-            lore.add(Component.text(" "));
-            lore.add(Component.text("Left-Click ").color(NamedTextColor.YELLOW).decorate(TextDecoration.BOLD).append(Component.text("to increase by 5%" ).color(NamedTextColor.GRAY)));
-            lore.add(Component.text("Right-Click ").color(NamedTextColor.YELLOW).decorate(TextDecoration.BOLD).append(Component.text("to decrease by 5%" ).color(NamedTextColor.GRAY)));
-            lore.add(Component.text("Middle-Click ").color(NamedTextColor.YELLOW).decorate(TextDecoration.BOLD).append(Component.text("to toggle enabled" ).color(NamedTextColor.GRAY)));
+            List<String> lore = meta.hasLore() ? meta.getLore() : new ArrayList<>();
+            lore.add(" ");
+            lore.add(ChatColor.GRAY + "" + ChatColor.BOLD + "Current Drop Chance: " + ChatColor.YELLOW + ChatColor.BOLD + String.format("%.1f%%", chance));
+            if (entry.kind == ChristmasPresents.EntryKind.EFFECT) lore.add(ChatColor.GRAY + "Type: " + ChatColor.AQUA + entry.effectKey);
+            lore.add(ChatColor.GRAY + "" + ChatColor.BOLD + "Status: " + (entry.enabled ? ChatColor.GREEN : ChatColor.RED) + ChatColor.BOLD + (entry.enabled ? "Enabled" : "Disabled"));
+            lore.add(" ");
+            lore.add(ChatColor.YELLOW + "" + ChatColor.BOLD + "Left-Click " + ChatColor.GRAY + "to increase by 5%");
+            lore.add(ChatColor.YELLOW + "" + ChatColor.BOLD + "Right-Click " + ChatColor.GRAY + "to decrease by 5%");
+            lore.add(ChatColor.YELLOW + "" + ChatColor.BOLD + "Middle-Click " + ChatColor.GRAY + "to toggle enabled");
             
-            meta.lore(lore);
+            meta.setLore(lore);
             meta.getPersistentDataContainer().set(entryKey, PersistentDataType.STRING, entry.id);
             item.setItemMeta(meta);
             
             inv.setItem(i, item);
         }
         
-        ItemStack backButton = createMenuItem(Material.BARRIER, Component.text("Back to Main Menu").color(NamedTextColor.RED).decorate(TextDecoration.BOLD));
-        ItemStack saveButton = createMenuItem(Material.EMERALD_BLOCK, Component.text("Save").color(NamedTextColor.GREEN).decorate(TextDecoration.BOLD));
+        ItemStack backButton = createMenuItem(Material.BARRIER, ChatColor.RED + "" + ChatColor.BOLD + "Back to Main Menu");
+        ItemStack saveButton = createMenuItem(Material.EMERALD_BLOCK, ChatColor.GREEN + "" + ChatColor.BOLD + "Save");
         inv.setItem(inv.getSize() - 1, backButton);
         inv.setItem(inv.getSize() - 2, saveButton);
-        ItemStack filler = createMenuItem(Material.GRAY_STAINED_GLASS_PANE, Component.text(" "));
+        ItemStack filler = createMenuItem(Material.GRAY_STAINED_GLASS_PANE, " ");
         for (int i = 0; i < inv.getSize(); i++) if (inv.getItem(i) == null) inv.setItem(i, filler);
         
         player.openInventory(inv);
@@ -124,9 +123,9 @@ public class DropRateGUI implements Listener {
         if (!(event.getWhoClicked() instanceof Player)) return;
         
         Player player = (Player) event.getWhoClicked();
-        Component title = event.getView().title();
+        String titleText = event.getView().getTitle();
         
-        if (title.equals(MAIN_TITLE)) {
+        if (titleText.equals(MAIN_TITLE)) {
             event.setCancelled(true);
             
             if (event.getCurrentItem() == null) return;
@@ -153,7 +152,7 @@ public class DropRateGUI implements Listener {
                 event.getCurrentItem().getType() == Material.EMERALD_BLOCK) {
                 plugin.saveDropsFromMemory();
                 player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, 1f, 1.2f);
-                player.sendMessage(Component.text("Saved drop rates").color(NamedTextColor.GREEN).decorate(TextDecoration.BOLD));
+                player.sendMessage(ChatColor.GREEN + "" + ChatColor.BOLD + "Saved drop rates");
                 openMainMenu(player);
                 openType.remove(player.getUniqueId());
                 return;
@@ -181,7 +180,7 @@ public class DropRateGUI implements Listener {
                     double currentChance = entry.chance;
                     if (event.getClick() == ClickType.LEFT) { currentChance = Math.min(100.0, currentChance + 5.0); player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1f, 1.1f);} 
                     else if (event.getClick() == ClickType.RIGHT) { currentChance = Math.max(0.0, currentChance - 5.0); player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1f, 0.9f);} 
-                    else if (event.getClick() == ClickType.MIDDLE) { entry.enabled = !entry.enabled; player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_HAT, 1f, entry.enabled ? 1.4f : 0.6f); player.sendMessage(Component.text(entry.enabled ? "Enabled" : "Disabled").color(entry.enabled ? NamedTextColor.GREEN : NamedTextColor.RED).decorate(TextDecoration.BOLD)); openItemList(player, presentType); return; }
+                    else if (event.getClick() == ClickType.MIDDLE) { entry.enabled = !entry.enabled; player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_HAT, 1f, entry.enabled ? 1.4f : 0.6f); player.sendMessage((entry.enabled ? ChatColor.GREEN : ChatColor.RED) + "" + ChatColor.BOLD + (entry.enabled ? "Enabled" : "Disabled")); openItemList(player, presentType); return; }
                     entry.chance = currentChance;
                     openItemList(player, presentType);
                 }
@@ -196,11 +195,11 @@ public class DropRateGUI implements Listener {
         return null;
     }
     
-    private ItemStack createMenuItem(Material material, Component name, Component... lore) {
+    private ItemStack createMenuItem(Material material, String name, String... lore) {
         ItemStack item = new ItemStack(material);
         ItemMeta meta = item.getItemMeta();
-        meta.displayName(name);
-        if (lore != null && lore.length > 0) meta.lore(Arrays.asList(lore));
+        meta.setDisplayName(name);
+        if (lore != null && lore.length > 0) meta.setLore(Arrays.asList(lore));
         item.setItemMeta(meta);
         return item;
     }

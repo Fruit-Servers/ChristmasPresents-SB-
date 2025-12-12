@@ -7,7 +7,7 @@ spawn_settings:
     - world
   spawn-interval-min: 30
   spawn-interval-max: 90
-  spawn-count: 5
+  spawn-count: 10
   spawn-message:
     enabled: true
     text: '&c&lSanta has delivered some presents!'
